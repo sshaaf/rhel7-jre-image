@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: Template
+labels:
+  demo: rhel7-jre8-mpdemo
+  template: rhel7-jre8-mpdemo
+metadata:
+  annotations:
+    description: A simple jre 8 container using starter beta from microprofile.io
+    iconClass: icon-java
+    tags: microservice,microprofile,thorntail
+  name: rhel7-jre8-mpdemo
+objects:
+- apiVersion: v1
+  groupNames: null
+  kind: RoleBinding
+  metadata:
+    name: default_edit
+  roleRef:
+    name: view
+  subjects:
+  - kind: ServiceAccount
+    name: default
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: rhel7-jre8-mpdemo
+  spec:
+    dockerImageRepository: quay.io/sshaaf/rhel7-jre8-mpdemo
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: rhel7-jre8-mpdemo
+  spec:
+    template:
+      metadata:
+        labels:
+          name: rhel7-jre8-mpdemo
+      spec:
+        containers:
+          - image: quay.io/sshaaf/rhel7-jre8-mpdemo:latest
+            name: rhel7-jre8-mpdemo
+            ports:
+              - containerPort: 8080
+                protocol: TCP
+    replicas: 1
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - rhel7-jre8-mpdemo
+        from:
+          kind: ImageStreamTag
+          name: rhel7-jre8-mpdemo:latest
+      type: ImageChange
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: rhel7-jre8-mpdemo
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: rhel7-jre8-mpdemo
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: rhel7-jre8-mpdemo
+  spec:
+    port:
+      targetPort: 8080-tcp
+    to:
+      kind: Service
+      name: rhel7-jre8-mpdemo
+      weight: 100
